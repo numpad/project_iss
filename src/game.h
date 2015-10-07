@@ -1,0 +1,128 @@
+#ifndef game_h
+#define game_h
+
+#include <stdio.h>
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_image.h>
+#include "vector.h"
+
+extern SDL_Window *window;
+extern SDL_Renderer *renderer;
+
+/*
+ * Initialize SDL, subsystems and window, renderer
+ * Returns 0 on success, 1 on failure (prints error code)
+ */
+int game_init(const char *title, const int width, const int height, Uint32 rendererflags) {
+	if (SDL_Init(SDL_INIT_EVERYTHING) < 0) {
+		printf("SDL failed to initialize: %s\n", SDL_GetError());
+		return 1;
+	}
+	if (IMG_Init(IMG_INIT_PNG) < 0) {
+		printf("SDL_image failed to initialize: %s\n", IMG_GetError());
+		return 1;
+	}
+	
+	window = SDL_CreateWindow(title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, width, height, SDL_WINDOW_SHOWN);
+	renderer = SDL_CreateRenderer(window, -1, rendererflags);
+	
+	if (!window) {
+		puts("Failed to create window!");
+		return 1;
+	}
+	if (!renderer) {
+		puts("Failed to create renderer!");
+		return 1;
+	}
+	
+	return 0;
+}
+
+/*
+ * Clean up all the mess SDL made
+ */
+int game_cleanup() {
+	SDL_DestroyRenderer(renderer);
+	SDL_DestroyWindow(window);
+	SDL_Quit();
+	
+	return 0;
+}
+
+/*
+ * Handles events for SDL
+ */
+void game_handle_events(int *running) {
+	
+	SDL_Event event;
+	while (SDL_PollEvent(&event)) {
+		switch(event.type) {
+		case SDL_QUIT:
+			*running = 0;
+			break;
+		}
+	}
+}
+
+/*
+ * Get mouse pos & state
+ */
+void game_get_mouse(Uint32 *mousestate, vector_t *mousepos) {
+	int mx, my;
+	*mousestate = SDL_GetMouseState(&mx, &my);
+	mousepos->x = mx;
+	mousepos->y = my;
+}
+
+
+/*
+ * Hold information to count fps
+ */
+typedef struct {
+	float interval;
+	Uint32 lasttime, current, frames;
+	char *fps_string;
+} fps_counter_t;
+
+/*
+ * Initialize the fps counter
+ */
+fps_counter_t game_init_fps_counter() {
+	fps_counter_t counter = (fps_counter_t) {
+		.interval = 1.0,
+		.lasttime = SDL_GetTicks(),
+		.current = 0,
+		.frames = 0,
+		.fps_string = malloc(11)
+	};
+	
+	strcpy(counter.fps_string, "FPS: __");
+
+	return counter;
+}
+/*
+ * Free memory taken by `counter`
+ */
+void game_delete_fps_counter(fps_counter_t *counter) {
+	free(counter->fps_string);
+}
+
+/*
+ * Calculate FPS in specified interval
+ */
+void game_calculate_fps(fps_counter_t *counter) {	
+	counter->frames++;
+	if (counter->lasttime < SDL_GetTicks() - counter->interval * 1000) {
+		counter->lasttime = SDL_GetTicks();
+		counter->current = counter->frames;
+		counter->frames = 0;
+
+		sprintf(counter->fps_string, "FPS: %d", counter->current);
+	}
+}
+
+void game_write_fps(fps_counter_t *counter, const int x, const int y) {
+	stringRGBA(renderer, x, y, counter->fps_string, 255, 155, 130, 255);
+}
+
+#endif
