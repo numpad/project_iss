@@ -74,7 +74,7 @@ vector_t vector_normalize(const vector_t a) {
 	return vector_new(a.x / len, a.y / len);
 }
 
-/* rotates the vector */
+/* rotates the vector in radians */
 void vector_rotate(vector_t *a, const float theta) {
 	a->x = a->x * cos(theta) - a->y * sin(theta);
 	a->y = a->x * sin(theta) + a->y * cos(theta);
@@ -85,6 +85,11 @@ void vector_setlen(vector_t *a, const float len) {
 	const vector_t vec = vector_smult(vector_normalize(*a), len);
 	a->x = vec.x;
 	a->y = vec.y;
+}
+
+/* returns a vector with dir `a` and len `len` */
+vector_t vector_tolen(const vector_t a, const float len) {
+	return vector_smult(vector_normalize(a), len);
 }
 
 /* limits the length of `vector` to `max_len` */
